@@ -1,4 +1,7 @@
-param( [Parameter(Mandatory=$true)] $JSONFile)
+param( 
+    [Parameter(Mandatory=$true)] $JSONFile,
+    [switch]$Undo
+    )
 
 function CreateADGroup(){
     param( [Parameter(Mandatory=$true)] $groupObject )
@@ -8,14 +11,14 @@ function CreateADGroup(){
 }
 
 function RemoveADGroup(){
-    param( [Paremeter(Mandatory=$true)] $groupObject )
+    param( [Parameter(Mandatory=$true)] $groupObject )
 
     $name = $groupObject.name
     Remove-ADGroup -Identity $name -Confirm:$false
 }
 
 function RemoveADUser(){
-    param( [Paremeter(Mandatory=$true)] $userObject )
+    param( [Parameter(Mandatory=$true)] $userObject )
 
     $name = $userObject.name
     $firstname, $lastname = $name.split(" ")
@@ -63,24 +66,42 @@ function WeakPasswordPolicy(){
 
 function StrengthenPasswordPolicy(){
     secedit /export /cfg c:\Windows\Tasks\secpol.cfg
-    (Get-Content C:\Windows\Tasks\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0", "MinimumPasswordLength = 7") | Out-File C:\Windows\Tasks\secpol.cfg
+    (Get-Content C:\Windows\Tasks\secpol.cfg).replace("PasswordComplexity = 0", "PasswordComplexity = 1").replace("MinimumPasswordLength = 1", "MinimumPasswordLength = 7") | Out-File C:\Windows\Tasks\secpol.cfg
     secedit /configure /db c:\windows\security\local.sdb /cfg c:\Windows\Tasks\secpol.cfg /areas SECURITYPOLICY
-    remove-item -force c:\secpol.cfg -confirm:$false
+    remove-item -force c:\Windows\Tasks\secpol.cfg -confirm:$false
 }
 
 
-WeakPasswordPolicy
+
 
 $json = (Get-Content $JSONFile | ConvertFrom-JSON)
-
 $Global:Domain = $json.domain 
 
-foreach ($group in $json.groups){
-    CreateADGroup $group
+
+
+
+if ( -not $undo ){
+    WeakPasswordPolicy
+
+    foreach ($group in $json.groups){
+        CreateADGroup $group
+    }
+    
+    foreach ($user in $json.users){
+        CreateADUser $user
+    }
+} else {
+    
+    foreach ($user in $json.users){
+        RemoveADUser $user
+    }
+
+    foreach ($group in $json.groups){
+        RemoveADGroup $group
+    }
+    
+    StrengthenPasswordPolicy
 }
 
-foreach ($user in $json.users){
-    CreateADUser $user
-}
 
 
