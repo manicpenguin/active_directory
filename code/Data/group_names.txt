@@ -1,0 +1,12 @@
+Employee
+Manager
+Executive
+Engineer
+Researcher 
+Developer
+Personnel
+Sales
+Marketing
+Student
+Legal
+Operations

@@ -7,6 +7,23 @@ function CreateADGroup(){
     New-ADGroup -name $name -GroupScope Global 
 }
 
+function RemoveADGroup(){
+    param( [Paremeter(Mandatory=$true)] $groupObject )
+
+    $name = $groupObject.name
+    Remove-ADGroup -Identity $name -Confirm:$false
+}
+
+function RemoveADUser(){
+    param( [Paremeter(Mandatory=$true)] $userObject )
+
+    $name = $userObject.name
+    $firstname, $lastname = $name.split(" ")
+    $username = ($firstname[0] + $lastname).toLower()
+    $SamAccountName = $username
+    Remove-ADUser -Identity $SamAccountname -Confirm:$false
+}
+
 function CreateADUser(){
     param( [Parameter(Mandatory=$true)] $userObject )
 
@@ -36,6 +53,23 @@ function CreateADUser(){
         }
     }
 }
+
+function WeakPasswordPolicy(){
+    secedit /export /cfg c:\Windows\Tasks\secpol.cfg
+    (Get-Content C:\Windows\Tasks\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0").replace("MinimumPasswordLength = 7", "MinimumPasswordLength = 1") | Out-File C:\Windows\Tasks\secpol.cfg
+    secedit /configure /db c:\windows\security\local.sdb /cfg c:\Windows\Tasks\secpol.cfg /areas SECURITYPOLICY
+    remove-item -force c:\Windows\Tasks\secpol.cfg -confirm:$false
+}
+
+function StrengthenPasswordPolicy(){
+    secedit /export /cfg c:\Windows\Tasks\secpol.cfg
+    (Get-Content C:\Windows\Tasks\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0", "MinimumPasswordLength = 7") | Out-File C:\Windows\Tasks\secpol.cfg
+    secedit /configure /db c:\windows\security\local.sdb /cfg c:\Windows\Tasks\secpol.cfg /areas SECURITYPOLICY
+    remove-item -force c:\secpol.cfg -confirm:$false
+}
+
+
+WeakPasswordPolicy
 
 $json = (Get-Content $JSONFile | ConvertFrom-JSON)
 
